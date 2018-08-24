@@ -1,10 +1,10 @@
 
 # initially, install clang-8
-sudo aptitude install clang-8
+# sudo aptitude install clang-8
 
 # you'll then get an error regarding missing experimental/coroutine header,
 # install libc++ for version 8 + dev
-sudo aptitude install libc++-8-dev
+# sudo aptitude install libc++-8-dev
 
 # then you'll get linker error, cannot find libc++
 # execute  
