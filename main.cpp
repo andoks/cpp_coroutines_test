@@ -11,6 +11,10 @@
     using std::future;
     using std::promise;
 
+#include <chrono>
+    using namespace std::chrono_literals;
+#include <thread>
+
 #include <experimental/coroutine>
 
 // for void async functions
@@ -55,17 +59,32 @@ template <typename R> auto operator co_await(future<R>&& f)
         auto await_resume() { return output.get(); }
         void await_suspend(std::experimental::coroutine_handle<> coro) {
             // apparently boost::future::then() is better, but this seems to work
-            std::async([this, coro]() mutable {
-                input.wait();
-                this->output = std::move(input);
-                coro.resume();
+            std::thread waiter([this, coro]() mutable {
+                    input.wait();
+                    this->output = std::move(input);
+                    coro.resume();
                 });
+            waiter.detach();
         }
     };
 
     return Awaiter{static_cast<future<R>&&>(f)};
 }
 
+
+future<void> async_sleep(std::chrono::milliseconds t)
+{
+    std::promise<void> p;
+    auto fut = p.get_future();
+    std::thread worker ([promise = std::move(p), t]() mutable {
+        std::this_thread::sleep_for(t);
+        promise.set_value();
+    });
+
+    worker.detach();
+
+    return fut;
+}
 
 future<int> async_add(int a, int b)
 {
@@ -78,9 +97,31 @@ future<void> async_hi()
     co_return;
 }
 
+future<void> async_loop()
+{
+    int count = 0;
+    while(true)
+    {
+        cout << "tick " << ++count << "\n";
+        co_await async_sleep(5000ms);
+    }
+
+    co_return;
+}
+
 int main(int argc, char* argv[])
 {
     cout << "Hello World!\n";
 
-    async_hi().get();
+    async_hi();
+    
+    cout << "creating first loop\n";
+    future<void> fut = async_loop();
+
+    cout << "creating second loop\n";
+    auto fut2 = async_loop();
+
+    fut.wait_for(500ms);
+    cout << "timed out \n";
+    fut2.wait();
 }
