@@ -44,6 +44,28 @@ struct std::experimental::coroutine_traits<future<R>, Args...> {
     };
 };
 
+// awaiter
+template <typename R> auto operator co_await(future<R>&& f)
+{
+    struct Awaiter {
+        future<R>&& input;
+        future<R> output;
+
+        bool await_ready() { return false; /* never finish immediately */}
+        auto await_resume() { return output.get(); }
+        void await_suspend(std::experimental::coroutine_handle<> coro) {
+            // apparently boost::future::then() is better, but this seems to work
+            std::async([this, coro]() mutable {
+                input.wait();
+                this->output = std::move(input);
+                coro.resume();
+                });
+        }
+    };
+
+    return Awaiter{static_cast<future<R>&&>(f)};
+}
+
 
 future<int> async_add(int a, int b)
 {
@@ -52,7 +74,7 @@ future<int> async_add(int a, int b)
 
 future<void> async_hi()
 {
-    cout << "my first coroutine asynchronously returned: " << async_add(20, 22).get() << '\n';
+    cout << "my first coroutine asynchronously returned: " << co_await async_add(20, 22) << '\n';
     co_return;
 }
 

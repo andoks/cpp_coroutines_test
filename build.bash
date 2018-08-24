@@ -12,4 +12,4 @@
 # and
 # export LD_LIBRARY_PATH=/usr/lib/llvm-8/lib
 
-clang++-8 -stdlib=libc++ --std=c++2a -fcoroutines-ts main.cpp -o main
+clang++-8 -stdlib=libc++ --std=c++2a -fcoroutines-ts -lpthread main.cpp -o main
