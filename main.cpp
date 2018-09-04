@@ -122,7 +122,7 @@ template <typename R> auto operator co_await(future<R>&& f)
 }
 
 
-future<void> async_sleep(std::chrono::milliseconds t)
+future<void> sleepAsync(std::chrono::milliseconds t)
 {
     std::promise<void> p;
     auto fut = p.get_future();
@@ -136,41 +136,99 @@ future<void> async_sleep(std::chrono::milliseconds t)
     return fut;
 }
 
-future<int> async_add(int a, int b)
-{
-    co_return a+b;
-}
 
-future<void> async_hi()
+class Client
 {
-    cout << "Add asynchrounously!\n";
-    auto val = co_await async_add(20, 22);
-    cout << "my first coroutine asynchronously returned: " << val << '\n';
-    co_return;
-}
+    private:
+        std::string m_name;
+        int iterations;
+        std::function<void(std::string)> callAtExit;
+        std::future<void> mainLoopFuture;
+    public:
+        Client(std::string name, int iterations)
+            : m_name(name)
+            , iterations(iterations)
+        {
+        }
+        void startAsync()
+        {
+            mainLoopFuture = [this]() -> std::future<void> {
+                for(int i = 0; i < iterations; i++)
+                {
+                    co_await sleepAsync(5000ms);
+                    cout << "client " << m_name << ": iteration " << i << " completed \n";
+                }
 
-future<void> async_loop(std::string name)
+                std::string copy = m_name;
+                callAtExit(copy);
+                co_return;
+            }();
+        }
+        void onDone(std::function<void(std::string)> slot)
+        {
+           callAtExit  = slot;
+        }
+        std::string name()
+        {
+            return m_name;
+        }
+};
+
+#include <sstream>
+auto acceptAsync = [count = 0] () mutable -> future<std::unique_ptr<Client>>
 {
-    int count = 0;
-    cout << "starting loop \"" << name << "\"\n";
-    while(true)
-    {
-        cout << name << ": tick " << ++count << "\n";
-        co_await async_sleep(5000ms);
-    }
+    co_await sleepAsync(10s);
+    std::stringstream s;
+    s << " #" << ++count;
 
-    co_return;
-}
+    co_return std::make_unique<Client>(s.str(), count);
+};
+
+#include <unordered_map>
+class Server
+{
+    private:
+        std::string m_name;
+        std::unordered_map<std::string, std::unique_ptr<Client>> clients;
+        std::future<void> mainLoopFuture;
+    public:
+        Server(std::string name)
+            : m_name(name)
+        {
+        }
+        void startAsync()
+        {
+            mainLoopFuture = [this]() mutable -> std::future<void> {
+                while(true)
+                {
+                    auto newClient = co_await acceptAsync();
+                    cout << m_name << ": client \"" << newClient->name() << "\" connected...\n";
+                    newClient->onDone([this](std::string name){
+                            auto it = clients.find(name);
+                            if(it != clients.end())
+                                cout << m_name << ": removing client \"" << it->first << "\"\n";
+                                clients.erase(it);
+                            });
+
+                    auto ptr = newClient.get();
+                    auto name = newClient->name();
+                    clients.insert({name, std::move(newClient)});
+
+                    // do this after everything else
+                    ptr->startAsync();
+                }
+
+                co_return;
+            }();
+        }
+};
 
 int main(int argc, char* argv[])
 {
     cout << "Hello World!\n";
 
-    async_hi();
-    
-    auto fut = async_loop("first");
-
-    auto fut2 = async_loop("second");
+    Server srv{"Server"};
+    srv.startAsync();
 
     cout << "starting event loop\n";
     auto ret = ev.run();
