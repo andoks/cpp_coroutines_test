@@ -143,16 +143,19 @@ future<int> async_add(int a, int b)
 
 future<void> async_hi()
 {
-    cout << "my first coroutine asynchronously returned: " << co_await async_add(20, 22) << '\n';
+    cout << "Add asynchrounously!\n";
+    auto val = co_await async_add(20, 22);
+    cout << "my first coroutine asynchronously returned: " << val << '\n';
     co_return;
 }
 
-future<void> async_loop()
+future<void> async_loop(std::string name)
 {
     int count = 0;
+    cout << "starting loop \"" << name << "\"\n";
     while(true)
     {
-        cout << "tick " << ++count << "\n";
+        cout << name << ": tick " << ++count << "\n";
         co_await async_sleep(5000ms);
     }
 
@@ -165,11 +168,9 @@ int main(int argc, char* argv[])
 
     async_hi();
     
-    cout << "creating first loop\n";
-    future<void> fut = async_loop();
+    auto fut = async_loop("first");
 
-    cout << "creating second loop\n";
-    auto fut2 = async_loop();
+    auto fut2 = async_loop("second");
 
     cout << "starting event loop\n";
     auto ret = ev.run();
