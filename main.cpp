@@ -17,6 +17,54 @@
 
 #include <experimental/coroutine>
 
+#include <functional>
+#include <queue>
+#include <mutex>
+#include <thread>
+#include <chrono>
+
+class EventLoop {
+private:
+    std::queue<std::function<void()>> callbacks;
+    std::recursive_mutex mut;
+public:
+    int run()
+    {
+        using namespace std::chrono_literals;
+
+        while(true)
+        {
+            bool doSleep = false;
+            {
+                std::unique_lock<std::recursive_mutex> g(mut);
+                if(callbacks.empty())
+                {
+                    doSleep = true;
+                }
+                else
+                {
+                    callbacks.front()();
+                    callbacks.pop();
+                }
+            }
+            if(doSleep)
+            {
+                // means that we will check for new events 1000 times per second
+                // if queue is empty
+                std::this_thread::sleep_for(1ms);
+            }
+        }
+    }
+
+    void post(std::function<void()> callback)
+    {
+        std::unique_lock<std::recursive_mutex> g(mut);
+        callbacks.push(callback);
+    }
+};
+
+static EventLoop ev;
+
 // for void async functions
 template <typename... Args>
 struct std::experimental::coroutine_traits<future<void>, Args...> {
@@ -62,7 +110,9 @@ template <typename R> auto operator co_await(future<R>&& f)
             std::thread waiter([this, coro]() mutable {
                     input.wait();
                     this->output = std::move(input);
-                    coro.resume();
+                    ev.post([coro]() mutable {
+                            coro.resume();
+                            });
                 });
             waiter.detach();
         }
@@ -121,7 +171,8 @@ int main(int argc, char* argv[])
     cout << "creating second loop\n";
     auto fut2 = async_loop();
 
-    fut.wait_for(500ms);
-    cout << "timed out \n";
-    fut2.wait();
+    cout << "starting event loop\n";
+    auto ret = ev.run();
+
+    return ret;
 }
