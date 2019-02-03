@@ -48,17 +48,23 @@ auto operator co_await(std::future<R>&& f)
         std::future<R> output;
 
         bool await_ready() { return false; /* never finish immediately */ }
-        auto await_resume() { return output.get(); }
+
         void await_suspend(std::experimental::coroutine_handle<> coro)
         {
             // apparently boost::future::then() is better, but this seems to work
-            std::thread waiter([this, coro]() mutable {
-                input.wait();
-                this->output = std::move(input);
-                EventLoop::get().post([coro]() mutable { coro.resume(); });
+            // this is basically busy-looping in eventloop thread, which is really inefficient, but better than
+            // sleeping and spawning new threads all the time.
+            EventLoop::get().post([coro, this]() mutable {
+                if (this->input.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+                    this->output = std::move(input);
+                    coro.resume();
+                } else {
+                    this->await_suspend(coro);
+                }
             });
-            waiter.detach();
         }
+
+        auto await_resume() { return output.get(); }
     };
 
     return Awaiter{ static_cast<std::future<R>&&>(f) };
