@@ -12,4 +12,10 @@
 # and
 # export LD_LIBRARY_PATH=/usr/lib/llvm-8/lib
 
-clang++-8 -g -Werror -Wall -stdlib=libc++ --std=c++2a -fcoroutines-ts -lpthread main.cpp -o main
+clang++-8 -g -Werror -Wall -stdlib=libc++ --std=c++2a -fcoroutines-ts -lpthread \
+    main.cpp                    \
+    eventloop.cpp               \
+    dummy_async_api.cpp         \
+    client.cpp                  \
+    server.cpp                  \
+    -o main
