@@ -15,5 +15,7 @@ RUN apt-get update          \
 RUN ln /usr/lib/llvm-8/lib/libc++abi.so.1 /usr/lib/llvm-8/lib/libc++abi.so
 WORKDIR /workdir
 COPY ./ src
+WORKDIR src
 ENV LD_LIBRARY_PATH=/usr/lib/llvm-8/lib
-CMD ["bash"]
+RUN ["./build.bash"]
+CMD ["./main"]

@@ -1,4 +1,4 @@
-
+#! /usr/bin/env bash
 # initially, install clang-8
 # sudo aptitude install clang-8
 
