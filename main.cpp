@@ -1,5 +1,6 @@
 ///
-/// Based on https://blogs.msdn.microsoft.com/vcblog/2017/05/19/using-c-coroutines-with-boost-c-libraries/
+/// Based on
+/// https://blogs.msdn.microsoft.com/vcblog/2017/05/19/using-c-coroutines-with-boost-c-libraries/
 ///
 
 #include "eventloop.hpp"
@@ -11,7 +12,7 @@ int main(int argc, char* argv[])
 {
     std::cout << "Hello World!\n";
 
-    Server srv{"Server"};
+    Server srv{ "Server" };
     srv.startAsync();
 
     std::cout << "starting event loop\n";

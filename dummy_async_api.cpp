@@ -1,11 +1,11 @@
 #include "dummy_async_api.hpp"
 
-#include "coroutines_boilerplate.hpp"
 #include "client.hpp"
+#include "coroutines_boilerplate.hpp"
 
+#include <chrono>
 #include <sstream>
 #include <thread>
-#include <chrono>
 
 using namespace std::chrono_literals;
 
@@ -13,7 +13,7 @@ std::future<void> sleepAsync(std::chrono::milliseconds t)
 {
     std::promise<void> p;
     auto fut = p.get_future();
-    std::thread worker ([promise = std::move(p), t]() mutable {
+    std::thread worker([promise = std::move(p), t]() mutable {
         std::this_thread::sleep_for(t);
         promise.set_value();
     });
@@ -31,4 +31,3 @@ auto DummyAcceptor::acceptAsync() -> std::future<std::unique_ptr<Client>>
 
     co_return std::make_unique<Client>(s.str(), count);
 }
-

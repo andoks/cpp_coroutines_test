@@ -1,10 +1,10 @@
 #include "client.hpp"
 
-#include "dummy_async_api.hpp"
 #include "coroutines_boilerplate.hpp"
+#include "dummy_async_api.hpp"
 
-#include <iostream>
 #include <chrono>
+#include <iostream>
 
 using namespace std::chrono_literals;
 
@@ -19,10 +19,10 @@ Client::~Client() = default;
 void Client::startAsync()
 {
     mainLoopFuture = [this]() -> std::future<void> {
-        for(int i = 0; i < iterations; i++)
-        {
+        for (int i = 0; i < iterations; i++) {
             co_await sleepAsync(5000ms);
-            std::cout << "client " << m_name << ": iteration " << i << " completed \n";
+            std::cout << "client " << m_name << ": iteration " << i
+                      << " completed \n";
         }
 
         std::string copy = m_name;
@@ -33,10 +33,7 @@ void Client::startAsync()
 
 void Client::onDone(std::function<void(std::string)> slot)
 {
-   callAtExit  = slot;
+    callAtExit = slot;
 }
 
-std::string Client::name()
-{
-    return m_name;
-}
+std::string Client::name() { return m_name; }
