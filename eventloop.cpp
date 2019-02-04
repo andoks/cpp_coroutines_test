@@ -19,6 +19,8 @@ int EventLoop::run()
             callbacks.pop();
         }
     }
+
+    return callbacks.size();
 }
 
 void EventLoop::post(std::function<void()> callback)
