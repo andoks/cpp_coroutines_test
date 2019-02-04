@@ -41,7 +41,7 @@ void EventLoop::post(std::function<void()> callback)
 {
     std::unique_lock<std::mutex> lock(mut);
     state = LoopState::CallbackPosted;
-    callbacks.push(callback);
+    callbacks.emplace(std::move(callback));
     lock.unlock();
 
     // wake up run()
