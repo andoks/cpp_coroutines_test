@@ -1,13 +1,22 @@
 #pragma once
 
+#include <condition_variable>
 #include <functional>
 #include <mutex>
 #include <queue>
 
 class EventLoop {
+    enum class LoopState {
+        CallbackPosted,
+        Waiting,
+    };
+
 private:
-    std::queue<std::function<void()>> callbacks;
-    std::recursive_mutex mut;
+    using QueueT = std::queue<std::function<void()>>;
+    QueueT callbacks;
+    std::mutex mut;
+    std::condition_variable cv;
+    LoopState state = LoopState::Waiting;
 
 public:
     static EventLoop& get();

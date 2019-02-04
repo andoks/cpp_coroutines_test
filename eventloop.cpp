@@ -13,18 +13,37 @@ EventLoop::~EventLoop() = default;
 int EventLoop::run()
 {
     while (true) {
-        std::unique_lock<std::recursive_mutex> g(mut);
-        if (!callbacks.empty()) {
-            callbacks.front()();
-            callbacks.pop();
+        // wait for new callbacks if queue is empty to avoid busylooping
+        std::unique_lock<std::mutex> lock(mut);
+        if (callbacks.empty()) {
+            state = LoopState::Waiting;
+            cv.wait(lock, [&]() { return state == LoopState::CallbackPosted; });
+        }
+
+        // take all callbacks to run
+        QueueT toBeRun;
+        std::swap(toBeRun, callbacks);
+        // unlock mutex so that callbacks run in loop may push to callback-queue
+        lock.unlock();
+
+        // drain callback queue
+        while (!toBeRun.empty()) {
+            toBeRun.front()();
+            toBeRun.pop();
         }
     }
 
+    std::unique_lock<std::mutex> lock(mut);
     return callbacks.size();
 }
 
 void EventLoop::post(std::function<void()> callback)
 {
-    std::unique_lock<std::recursive_mutex> g(mut);
+    std::unique_lock<std::mutex> lock(mut);
+    state = LoopState::CallbackPosted;
     callbacks.push(callback);
+    lock.unlock();
+
+    // wake up run()
+    cv.notify_one();
 }
