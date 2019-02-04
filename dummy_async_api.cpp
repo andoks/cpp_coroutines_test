@@ -2,6 +2,7 @@
 
 #include "client.hpp"
 #include "coroutines_boilerplate.hpp"
+#include "future_wrapper.hpp"
 
 #include <chrono>
 #include <sstream>
@@ -9,9 +10,9 @@
 
 using namespace std::chrono_literals;
 
-std::future<void> sleepAsync(std::chrono::milliseconds t)
+future<void> sleepAsync(std::chrono::milliseconds t)
 {
-    std::promise<void> p;
+    promise<void> p;
     auto fut = p.get_future();
     std::thread worker([promise = std::move(p), t]() mutable {
         std::this_thread::sleep_for(t);
@@ -23,7 +24,7 @@ std::future<void> sleepAsync(std::chrono::milliseconds t)
     return fut;
 }
 
-auto DummyAcceptor::acceptAsync() -> std::future<std::unique_ptr<Client>>
+auto DummyAcceptor::acceptAsync() -> future<std::unique_ptr<Client>>
 {
     co_await sleepAsync(10s);
     std::stringstream s;

@@ -19,8 +19,12 @@ RUN apt-get update          \
         git
 
 # ensure clang tools work
-RUN update-alternatives --install /usr/lib/llvm-8/lib/libc++abi.so libc++abi /usr/lib/llvm-8/lib/libc++abi.so.1  1
-RUN update-alternatives --install /usr/bin/clang++ clang++ /usr/lib/llvm-8/bin/clang++ 1
+# libc++abi.so for the linker to actually be able to link with libc++
+# clang++ for clang++-libc++ to find the command it wraps
+# clang for hunterified boost to be able to build bootstrap as it ignores toolchain-file
+RUN update-alternatives --install /usr/lib/llvm-8/lib/libc++abi.so libc++abi /usr/lib/llvm-8/lib/libc++abi.so.1  1  \
+    && update-alternatives --install /usr/bin/clang++ clang++ /usr/lib/llvm-8/bin/clang++ 1                         \
+    && update-alternatives --install /usr/bin/clang clang /usr/lib/llvm-8/bin/clang-8 1
 
 WORKDIR /workdir
 COPY ./ src

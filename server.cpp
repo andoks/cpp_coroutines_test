@@ -2,6 +2,7 @@
 
 #include "client.hpp"
 #include "coroutines_boilerplate.hpp"
+#include "future_wrapper.hpp"
 
 #include <iostream>
 
@@ -15,7 +16,7 @@ Server::~Server() = default;
 
 void Server::startAsync()
 {
-    mainLoopFuture = [this]() mutable -> std::future<void> {
+    mainLoopFuture = [this]() mutable -> future<void> {
         while (true) {
             auto newClient = co_await acceptor.acceptAsync();
             std::cout << m_name << ": client \"" << newClient->name()

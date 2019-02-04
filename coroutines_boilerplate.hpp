@@ -2,12 +2,13 @@
 
 #include "eventloop.hpp"
 
+#include "future_wrapper.hpp"
+
 #include <experimental/coroutine>
-#include <future>
 
 // for void async functions
 template <typename... Args>
-struct std::experimental::coroutine_traits<std::future<void>, Args...> {
+struct std::experimental::coroutine_traits<future<void>, Args...> {
     struct promise_type {
         promise<void> p;
 
@@ -22,7 +23,7 @@ struct std::experimental::coroutine_traits<std::future<void>, Args...> {
 
 // for non-void async functions
 template <typename R, typename... Args>
-struct std::experimental::coroutine_traits<std::future<R>, Args...> {
+struct std::experimental::coroutine_traits<future<R>, Args...> {
     struct promise_type {
         promise<R> p;
 
@@ -41,11 +42,11 @@ struct std::experimental::coroutine_traits<std::future<R>, Args...> {
 
 // awaiter
 template <typename R>
-auto operator co_await(std::future<R>&& f)
+auto operator co_await(future<R>&& f)
 {
     struct Awaiter {
-        std::future<R>&& input;
-        std::future<R> output;
+        future<R>&& input;
+        future<R> output;
 
         bool await_ready() { return false; /* never finish immediately */ }
 
@@ -55,7 +56,7 @@ auto operator co_await(std::future<R>&& f)
             // this is basically busy-looping in eventloop thread, which is really inefficient, but better than
             // sleeping and spawning new threads all the time.
             EventLoop::get().post([coro, this]() mutable {
-                if (this->input.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+                if (this->input.wait_for(boost::chrono::seconds(0)) == future_status::ready) {
                     this->output = std::move(input);
                     coro.resume();
                 } else {
@@ -67,5 +68,5 @@ auto operator co_await(std::future<R>&& f)
         auto await_resume() { return output.get(); }
     };
 
-    return Awaiter{ static_cast<std::future<R>&&>(f) };
+    return Awaiter{ static_cast<future<R>&&>(f) };
 }

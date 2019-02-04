@@ -9,6 +9,9 @@ HunterGate(
 
 project(cpp_coroutines_test CXX C)
 
+hunter_add_package(Boost COMPONENTS thread chrono)
+find_package(Boost CONFIG REQUIRED thread chrono)
+
 
 find_package(Threads)
 
@@ -20,4 +23,7 @@ add_executable(main
     server.cpp
 )
 target_link_libraries(main 
-    ${CMAKE_THREAD_LIBS_INIT})
+    ${CMAKE_THREAD_LIBS_INIT}
+    Boost::thread
+    Boost::chrono
+)

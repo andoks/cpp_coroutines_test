@@ -2,6 +2,7 @@
 
 #include "coroutines_boilerplate.hpp"
 #include "dummy_async_api.hpp"
+#include "future_wrapper.hpp"
 
 #include <chrono>
 #include <iostream>
@@ -18,7 +19,7 @@ Client::~Client() = default;
 
 void Client::startAsync()
 {
-    mainLoopFuture = [this]() -> std::future<void> {
+    mainLoopFuture = [this]() -> future<void> {
         for (int i = 0; i < iterations; i++) {
             co_await sleepAsync(5000ms);
             std::cout << "client " << m_name << ": iteration " << i
